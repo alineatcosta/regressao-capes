@@ -236,3 +236,24 @@ modelo_produtividade = lm(produtividade ~ trabalhos_conclusao + nivel + docentes
 tidy(modelo_produtividade, conf.int = TRUE, conf.level = 0.95)
 glance(modelo_produtividade)
 ```
+
+Visualizar o modelo ??
+
+```{r}
+para_plotar_modelo = cacc_produtividade %>% 
+  data_grid(produtividade  = seq_range(produtividade , 10), # Crie um vetor de 10 valores no range
+            docentes = seq_range(docentes, 4),  
+            nivel = nivel,
+            trabalhos_conclusao = seq_range(trabalhos_conclusao, 3)) %>% 
+  add_predictions(modelo_produtividade)
+
+glimpse(para_plotar_modelo)
+
+```
+
+```{r}
+para_plotar_modelo %>% 
+  ggplot(aes(x = docentes, y = produtividade)) + 
+  geom_line(aes(group = nivel, colour = nivel)) + 
+  geom_point(data = cacc_produtividade, aes(y = produtividade, colour = nivel))
+```
