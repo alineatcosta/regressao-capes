@@ -1,5 +1,6 @@
 ---
 title: "Regressão linear na prática"
+autor: "Aline Costa"
 output: html_notebook
 ---
 
@@ -28,7 +29,7 @@ A CAPES é um órgão do MEC que tem a atribuição de acompanhar a pós-gradua�
 Usaremos dados da penúltima avaliação da CAPES: 
 
 ```{r}
-cacc_tudo = read_projectdata()
+cacc_tudo = read_csv(here::here("data/cacc.csv"))
 
 glimpse(cacc_tudo)
 ```
@@ -112,7 +113,7 @@ Se considerarmos que temos apenas uma amostra de todos os programas de pós em C
 
 Normalmente reportaríamos o resultado da seguinte maneira, substituindo VarIndepX e todos os x's e y's pelos nomes e valores de fato:
 
-> Regressão múltipla foi utilizada para analisar se VarIndep1 e VarIndep2 tem uma associação significativa com VarDep. Os resultados da regressão indicam que um modelo com os 2 preditores no formato VarDep = XXX.VarIndep1 + YYY.VarIndep2 explicam XX,XX% da variância da variável de resposta (R2 = XX,XX). VarIndep1, medida como/em [unidade ou o que é o 0 e o que é 1] tem uma relação significativa com o erro (b = [yy,yy; zz,zz], IC com 95%), assim como VarIndep2 medida como [unidade ou o que é o 0 e o que é 1] (b = [yy,yy; zz,zz], IC com 95%). O aumento de 1 unidade de VarIndep1 produz uma mudança de xxx em VarDep, enquanto um aumento...
+> Regressão múltipla foi utilizada para analisar se a quantidade de docentes permanentes do programa tem uma associação significativa com a produção do programa. Os resultados da regressão indicam que um modelo com 1 preditor no formato producao = -41.27 + 4.81 * docentes explicam 81,45% da variância da variável de resposta (R2 = 0.8145). A quantidade de docentes permanentes, medida como a quantidade total de docentes permanentes no programa tem uma relação significativa com o erro (b = [4.26; 5.35], IC com 95%). O aumento de 1 unidade da quantidade de docentes produz uma mudança de 4.81 na produção do programa.
 
 Produza aqui a sua versão desse texto, portanto:
 
@@ -185,3 +186,53 @@ Considerando agora esses três fatores, o que podemos dizer sobre como cada um d
 Diferente de medirmos produção (total produzido), é medirmos produtividade (produzido / utilizado). Abaixo focaremos nessa análise. Para isso crie um modelo que investiga como um conjunto de fatores que você julga que são relevantes se relacionam com a produtividade dos programas. Crie um modelo que avalie como _pelo menos 3 fatores_ se relacionam com a produtividade de um programa. Pode reutilizar fatores que já definimos e analizamos para produção. Mas cuidado para não incluir fatores que sejam função linear de outros já incluídos (ex: incluir A, B e um tercero C=A+B)
 
 Produza abaixo o modelo e um texto que comente (i) o modelo, tal como os que fizemos antes, e (ii) as implicações - o que aprendemos sobre como funcionam programas de pós no brasil?.
+
+Arrmando os dados.
+
+Considerando apenas os programas que tem doutorado
+```{r}
+cacc2 = cacc_tudo %>%
+  transmute(
+    docentes = `Docentes permanentes`,
+    producao = (periodicos_A1 + periodicos_A2 + periodicos_B1),
+    produtividade = producao / docentes,
+    mestrados = Dissertacoes,
+    doutorados = Teses,
+    tem_doutorado = tolower(`Tem doutorado`) == "sim",
+    nivel = `Nível`,
+    trabalhos_conclusao = (mestrados + doutorados) 
+  )
+
+cacc_produtividade = cacc2 %>% 
+  filter(tem_doutorado)
+```
+
+Fazendo os gráficos para ver se aparentemente tem alguma relaçao
+
+```{r}
+cacc_produtividade %>% 
+  ggplot(aes(x = produtividade, y = nivel)) + 
+  geom_point()
+```
+
+
+```{r}
+cacc_produtividade %>% 
+  ggplot(aes(x = produtividade, y = trabalhos_conclusao)) + 
+  geom_point()
+```
+
+
+```{r}
+cacc_produtividade %>% 
+  ggplot(aes(x = produtividade, y = docentes)) + 
+  geom_point()
+```
+
+Criando o modelo
+```{r}
+modelo_produtividade = lm(produtividade ~ trabalhos_conclusao + nivel + docentes, data = cacc_produtividade)
+
+tidy(modelo_produtividade, conf.int = TRUE, conf.level = 0.95)
+glance(modelo_produtividade)
+```
